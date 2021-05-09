@@ -1,30 +1,39 @@
 # Dockerfile for cr2hdr
-This is a simple Dockerfile for installing the `cr2hdr` tool for processing Magic Lantern dual ISO images ([source repo](https://bitbucket.org/hudson/magic-lantern/)). I couldn't find a simple installer for GNU/Linux, so after some trial and error this is is the end result.
+This is a simple Dockerfile for installing `cr2hdr`, a tool for processing Magic Lantern dual ISO images ([source repo](https://foss.heptapod.net/magic-lantern/magic-lantern)). I couldn't find a simple working installer for GNU/Linux, so I updated and upgraded [JCGoran's cr2hdr-docker](https://github.com/JCGoran/cr2hdr-docker).
 
 ## How to install
-The image from [Dockerhub](https://hub.docker.com/r/jcgoran/cr2hdr):
+Download the Dockerfile:
 ```
-docker pull jcgoran/cr2hdr
+wget https://raw.githubusercontent.com/ebonetti/cr2hdr/master/Dockerfile
 ```
-Building the Docker image from this repo:
+Build the Docker image from the Dockerfile:
 ```
-git clone https://github.com/JCGoran/cr2hdr-docker
-docker build cr2hdr-docker
+docker build -t cr2hdr .
+```
+Optional, clean docker cache:
+```
+docker system prune
 ```
 
 ## How to use
-Once you've installed it, you can run `cr2hdr` as follows:
+Once you've built it, you can run `cr2hdr` as follows:
 ```
-docker run --rm -ti -v "$(pwd):/data" jcgoran/cr2hdr /bin/bash -c "cr2hdr [OPTIONS] [IMAGE_NAME(S)]"
+docker run -ti --init --mount "type=bind,src=$(pwd),dst=$(pwd)" --workdir "$(pwd)" --user "$(id -u):$(id -g)" --rm --network none cr2hdr [OPTIONS] [IMAGE_NAME(S)]
 ```
-As the above is lengthy, you may want to make a `bash`/`csh`/whatever shortcut, by putting something like the below in one of your shell dotfiles:
+
+Quick explainer: run docker image cr2hdr, mounting the current folder as working directory in the container. Pass the current user id to the container so that generated files are owned by current user instead of root. When finished removes the container. Also the container has no access to network as a precaution, as recently have been found vulnerabilities in exiftool and dcraw.
+
+As the command above is pretty lengthy, you may want to add this function to your shell dotfiles, i.e. `.bashrc`:
 ```
 cr2hdr(){
-    args="$@"
-    docker run --rm -ti -v "$(pwd):/data" jcgoran/cr2hdr /bin/bash -c "cr2hdr $args"
+    docker run -ti --init --mount "type=bind,src=$(pwd),dst=$(pwd)" --workdir "$(pwd)" --user "$(id -u):$(id -g)" --rm --network none cr2hdr "$@";
 }
 ```
-Then to invoke it, you can just run `cr2hdr` from a shell (note: it will only work for images in the current directory and below, i.e. going up (`../` or similar) or using absolute paths will not work).
+
+Now you can enjoy cr2hdr the easy way: cr2hdr [OPTIONS] [IMAGE_NAME(S)]
+
+NB: this command will fail for images outsde the current print working directory (pwd). The solution of this problem is (not) trivial and is left as an exercise for the reader ;)
+
 
 ## License
 `cr2hdr` and Magic Lantern are properties of their respective owners.
